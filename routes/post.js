@@ -56,7 +56,7 @@ router.get('/getallpost/:id', async (req, res) => {
 router.get('/getalldbpost', async (req,res)=>{
     try {
         // Post.find() yaha hm bina fetchuser ke sari post dekh sakte hain
-            let posts = await Post.find();
+            let posts = await Post.find().populate('userId', 'name email');
             res.json(posts);
     } catch (error) {
         console.error("Error fetching all user posts:", error.message);
