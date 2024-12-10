@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const mongourl = "mongodb://localhost:27017/QuickMoney";
+const mongourl = process.env.MongoUrl;
 
 const connectTomongo = async () => {
     try {
