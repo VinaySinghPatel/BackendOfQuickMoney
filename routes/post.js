@@ -45,7 +45,7 @@ router.get('/getallpost/:id', async (req, res) => {
         if (!id) {
             return res.status(400).json({ error: "User ID is required." });
         }
-        let posts = await Post.find({ user: id });
+        let posts = await Post.find({ user: id }).populate('userId', 'name email');
         res.json(posts);
     } catch (error) {
         console.error("Error fetching posts:", error.message);
