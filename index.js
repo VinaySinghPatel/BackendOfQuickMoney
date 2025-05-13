@@ -15,7 +15,8 @@ const port = process.env.PORT || 5000;
 const allowedOrigins = [
   'http://localhost:3000',
   'https://67564946d8f04f4373e76ea3--deft-semifreddo-592c5a.netlify.app',
-  'https://famous-marigold-70f8e4.netlify.app'
+  'https://famous-marigold-70f8e4.netlify.app',
+  'https://backendofquickmoney.onrender.com'
 ];
 
 app.use(cors({
