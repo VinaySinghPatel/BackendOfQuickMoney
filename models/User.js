@@ -26,6 +26,30 @@ const UserSchema = new Schema ({
       type:Number,
       required:false
    },
+   aadharNumber:{
+      type:String,
+      required:false
+   },
+   panCardNumber:{
+      type:String,
+      required:false
+   },
+   city:{
+      type:String,
+      required:false
+   },
+   state:{
+      type:String,
+      required:false
+   },
+   country:{
+      type:String,
+      required:false
+   },
+   pinCode:{
+      type:String,
+      required:false
+   },
    verified : {
          type : Boolean,
          default : false

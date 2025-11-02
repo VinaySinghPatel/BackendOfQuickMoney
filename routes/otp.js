@@ -24,10 +24,7 @@ router.post('/send-otp', async (req, res) => {
     from: process.env.EMAIL_USER,
     to: email,
     subject: 'Your OTP Code',
-    text: `Verify Your Quick Money Account Using this OTP !! ${otp}
-    
-        Thankyou For Using Quick-Money Application .
-    `
+    text: `Verify Your Account Using this OTP Bhai!! ${otp}`
   };
 
   try {

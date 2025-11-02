@@ -26,7 +26,7 @@ router.post('/createpost', fecthUser, [
             description,
             mobilenumber,
             user: req.user.id,
-            userId : req.user.id
+            userId: req.user.id,
         });
 
         let savepost = await newpost.save();
@@ -55,9 +55,95 @@ router.get('/getallpost/:id', async (req, res) => {
 
 router.get('/getalldbpost', async (req,res)=>{
     try {
-        // Post.find() yaha hm bina fetchuser ke sari post dekh sakte hain
-            let posts = await Post.find().populate('userId', 'name email');
-            res.json(posts);
+        // Extract query parameters for filtering
+        const { 
+            city, 
+            state, 
+            pinCode, 
+            startDate, 
+            endDate, 
+            page = 1, 
+            limit = 10 
+        } = req.query;
+
+        // Build filter object
+        let filter = {};
+        
+        // Build user filter for location-based filtering
+        let userFilter = {};
+        if (city) {
+            userFilter.city = { $regex: city, $options: 'i' }; // Case-insensitive search
+        }
+        if (state) {
+            userFilter.state = { $regex: state, $options: 'i' };
+        }
+        if (pinCode) {
+            userFilter.pinCode = { $regex: pinCode, $options: 'i' };
+        }
+
+        // Date filtering
+        if (startDate || endDate) {
+            filter.fromDate = {};
+            if (startDate) {
+                filter.fromDate.$gte = new Date(startDate);
+            }
+            if (endDate) {
+                filter.fromDate.$lte = new Date(endDate);
+            }
+        }
+
+        // Calculate pagination
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const skip = (pageNum - 1) * limitNum;
+
+        // First, find users matching the location criteria if any
+        let userIds = null;
+        if (Object.keys(userFilter).length > 0) {
+            const User = require('../models/User');
+            const users = await User.find(userFilter).select('_id');
+            userIds = users.map(u => u._id);
+            
+            // If no users found matching criteria, return empty result
+            if (userIds.length === 0) {
+                return res.json({
+                    posts: [],
+                    totalPosts: 0,
+                    currentPage: pageNum,
+                    totalPages: 0,
+                    hasNextPage: false,
+                    hasPrevPage: false
+                });
+            }
+            
+            // Add user filter to post query
+            filter.userId = { $in: userIds };
+        }
+
+        // Get total count for pagination
+        const totalPosts = await Post.countDocuments(filter);
+
+        // Fetch posts with user data populated (including city, state, pinCode)
+        let posts = await Post.find(filter)
+        .populate({
+            path: 'userId',
+            select: 'name email city state pinCode country phone address createdAt' // Add all fields you need
+        })
+            .sort({ fromDate: -1 }) // Sort by newest first
+            .skip(skip)
+            .limit(limitNum);
+
+        const totalPages = Math.ceil(totalPosts / limitNum);
+
+        res.json({
+            posts: posts,
+            totalPosts: totalPosts,
+            currentPage: pageNum,
+            totalPages: totalPages,
+            hasNextPage: pageNum < totalPages,
+            hasPrevPage: pageNum > 1,
+            limit: limitNum
+        });
     } catch (error) {
         console.error("Error fetching all user posts:", error.message);
         res.status(500).send("Error occurred while fetching all posts");
