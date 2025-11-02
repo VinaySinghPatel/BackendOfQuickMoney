@@ -15,8 +15,7 @@ const port = process.env.PORT || 5000;
 const allowedOrigins = [
   'http://localhost:3000',
   'https://67564946d8f04f4373e76ea3--deft-semifreddo-592c5a.netlify.app',
-  'https://famous-marigold-70f8e4.netlify.app',
-  'https://backendofquickmoney.onrender.com'
+  'https://famous-marigold-70f8e4.netlify.app'
 ];
 
 app.use(cors({
@@ -58,9 +57,30 @@ io.on('connection', (socket) => {
 
   socket.on('sendMessage', async ({ senderId, receiverId, message, timestamp }) => {
     const roomId = [senderId, receiverId].sort().join('-'); // match frontend format
-    const newMessage = new Chat({ senderId, receiverId, message, roomId, timestamp });
+    
+    // Check if message already exists (to prevent duplicates from API + Socket.IO)
+    // Look for messages with same content, sender, receiver within 3 seconds
+    const timestampDate = new Date(timestamp);
+    const timeRangeStart = new Date(timestampDate.getTime() - 3000); // 3 seconds before
+    const timeRangeEnd = new Date(timestampDate.getTime() + 3000); // 3 seconds after
+    
+    const existingMessage = await Chat.findOne({
+      senderId,
+      receiverId,
+      message,
+      timestamp: {
+        $gte: timeRangeStart,
+        $lte: timeRangeEnd
+      }
+    });
 
-    await newMessage.save();
+    // Only save if message doesn't already exist
+    if (!existingMessage) {
+      const newMessage = new Chat({ senderId, receiverId, message, roomId, timestamp });
+      await newMessage.save();
+    }
+    
+    // Always emit to socket (for real-time updates)
     io.to(roomId).emit('receiveMessage', {
       senderId,
       receiverId,
@@ -93,6 +113,17 @@ app.use('/api/post', require('./routes/post'));
 app.use('/api/otp', require('./routes/otp'));
 app.use('/api/Chat', chatRoutes);
 app.use('/api/agreements', agreementsRouter);
+app.use('/api/notification', require('./routes/Notification'));
+
+// 404 handler for undefined routes
+app.use((req, res) => {
+  res.status(404).json({ 
+    success: false, 
+    error: 'Route not found',
+    path: req.path,
+    method: req.method
+  });
+});
 
 // Start server
 server.listen(port, () => {
